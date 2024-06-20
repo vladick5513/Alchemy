@@ -1,5 +1,5 @@
 from sqlalchemy import Table, Column, Integer, String, MetaData, ForeignKey, func, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 from database import Base, str_256
 import enum
 import datetime
@@ -18,6 +18,8 @@ class WorkersOrm(Base):
     id: Mapped[intpk]
     username: Mapped[str]
 
+    resumes: Mapped[list["ResumesOrm"]] = relationship("ResumesOrm", back_populates="worker")
+
 class Workload(enum.Enum):
     parttime = "parttime"
     fulltime = "fulltime"
@@ -31,8 +33,13 @@ class ResumesOrm(Base):
     compensation: Mapped[int | None]
     workload: Mapped[Workload]
     worker_id: Mapped[int] = mapped_column(ForeignKey("workers.id", ondelete="CASCADE"))
-    creared_on: Mapped[creared_on]
+    created_on: Mapped[creared_on]
     updated_on: Mapped[updated_on]
+
+    worker: Mapped["WorkersOrm"] = relationship("WorkersOrm", back_populates="resumes")
+
+    repr_cols_num = 4
+    repr_cols = ("updated_on", )
 
 
 

@@ -1,7 +1,7 @@
 from sqlalchemy import text, insert, select, update, func, cast, Integer, and_
 from database import sync_engine, async_engine, session_factory, async_session_factory, Base
 from models import ResumesOrm, WorkersOrm, Workload
-from sqlalchemy.orm import aliased
+from sqlalchemy.orm import aliased, joinedload
 
 
 
@@ -78,31 +78,9 @@ class SyncORM:
             result = res.all()
             print(result[0].avg_compensation)
 
-class AsyncORM:
     @staticmethod
-    async def insert_additional_resumes():
-        async with async_session_factory() as session:
-            workers = [
-                {"username": "Artem"},  # id 3
-                {"username": "Roman"},  # id 4
-                {"username": "Petr"},  # id 5
-            ]
-            resumes = [
-                {"title": "Python программист", "compensation": 60000, "workload": "fulltime", "worker_id": 3},
-                {"title": "Machine Learning Engineer", "compensation": 70000, "workload": "parttime", "worker_id": 3},
-                {"title": "Python Data Scientist", "compensation": 80000, "workload": "parttime", "worker_id": 4},
-                {"title": "Python Analyst", "compensation": 90000, "workload": "fulltime", "worker_id": 4},
-                {"title": "Python Junior Developer", "compensation": 100000, "workload": "fulltime", "worker_id": 5},
-            ]
-            insert_workers = insert(WorkersOrm).values(workers)
-            insert_resumes = insert(ResumesOrm).values(resumes)
-            await session.execute(insert_workers)
-            await session.execute(insert_resumes)
-            await session.commit()
-
-    @staticmethod
-    async def join_cte_subquery_window_func(like_language: str = "Python"):
-        async with async_session_factory() as session:
+    def join_cte_subquery_window_func(like_language: str = "Python"):
+        with async_session_factory() as session:
             r = aliased(ResumesOrm)
         w = aliased(WorkersOrm)
         subq = (
@@ -129,8 +107,80 @@ class AsyncORM:
             .order_by(cte.c.compensation_diff.desc())
         )
 
-        res = await session.execute(query)
+        res = session.execute(query)
         result = res.all()
         print(result)
-
         # print(query.compile(compile_kwargs={"literal_binds": True}))
+    @staticmethod
+    def select_workers_with_lazy_relationship():
+        with session_factory () as session:
+            query = (
+                select(WorkersOrm)
+            )
+            res = session.execute(query)
+            result = res.scalars().all()
+
+            worker_1_resumes = result[0].resumes
+            print(worker_1_resumes)
+
+            worker_2_resumes = result[1].resumes
+            print(worker_2_resumes)
+
+    @staticmethod
+    def select_workers_with_joined_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm)
+                .options(joinedload(WorkersOrm.resumes))
+            )
+
+            res = session.execute(query)
+            result = res.unique().scalars().all()
+
+            worker_1_resumes = result[0].resumes
+            print(worker_1_resumes)
+
+            worker_2_resumes = result[1].resumes
+            print(worker_2_resumes)
+
+    @staticmethod
+    def select_workers_with_selectin_relationship():
+        with session_factory() as session:
+            query = (
+                select(WorkersOrm)
+                .options(selectinload(WorkersOrm.resumes))
+            )
+
+            res = session.execute(query)
+            result = res.scalars().all()
+
+            worker_1_resumes = result[0].resumes
+            print(worker_1_resumes)
+
+            worker_2_resumes = result[1].resumes
+            print(worker_2_resumes)
+
+
+class AsyncORM:
+    @staticmethod
+    async def insert_additional_resumes():
+        async with async_session_factory() as session:
+            workers = [
+                {"username": "Artem"},  # id 3
+                {"username": "Roman"},  # id 4
+                {"username": "Petr"},  # id 5
+            ]
+            resumes = [
+                {"title": "Python программист", "compensation": 60000, "workload": "fulltime", "worker_id": 3},
+                {"title": "Machine Learning Engineer", "compensation": 70000, "workload": "parttime", "worker_id": 3},
+                {"title": "Python Data Scientist", "compensation": 80000, "workload": "parttime", "worker_id": 4},
+                {"title": "Python Analyst", "compensation": 90000, "workload": "fulltime", "worker_id": 4},
+                {"title": "Python Junior Developer", "compensation": 100000, "workload": "fulltime", "worker_id": 5},
+            ]
+            insert_workers = insert(WorkersOrm).values(workers)
+            insert_resumes = insert(ResumesOrm).values(resumes)
+            await session.execute(insert_workers)
+            await session.execute(insert_resumes)
+            await session.commit()
+
+
