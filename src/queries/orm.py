@@ -1,6 +1,6 @@
-from sqlalchemy import text, insert, select, update
+from sqlalchemy import text, insert, select, update, func, cast, Integer, and_
 from database import sync_engine, async_engine, session_factory, async_session_factory, Base
-from models import  WorkersOrm
+from models import ResumesOrm, WorkersOrm, Workload
 
 
 
@@ -40,3 +40,42 @@ class SyncORM:
             worker_michale.username = new_username
             session.expire
             session.commit()
+
+    @staticmethod
+    def insert_resumes():
+        with session_factory() as session:
+            resume_jack_1 = ResumesOrm(
+                title="Python Junior Developer", compensation=50000, workload=Workload.fulltime, worker_id=1)
+            resume_jack_2 = ResumesOrm(
+                title="Python Разработчик", compensation=150000, workload=Workload.fulltime, worker_id=1)
+            resume_michael_1 = ResumesOrm(
+                title="Python Data Engineer", compensation=250000, workload=Workload.parttime, worker_id=2)
+            resume_michael_2 = ResumesOrm(
+                title="Data Scientist", compensation=300000, workload=Workload.fulltime, worker_id=2)
+            session.add_all([resume_jack_1, resume_jack_2,
+                             resume_michael_1, resume_michael_2])
+            session.commit()
+
+    @staticmethod
+    def select_resumes_avg_compensation(like_language: str = "Python"):
+        with session_factory() as session:
+            query = (
+                select(
+                    ResumesOrm.workload,
+                    func.avg(ResumesOrm.compensation).cast(Integer).label("avg_compensation"),
+                )
+                .select_from(ResumesOrm)
+                .filter(and_(
+                    ResumesOrm.title.contains(like_language),
+                    ResumesOrm.compensation > 40000,
+                ))
+                .group_by(ResumesOrm.workload)
+                .having(func.avg(ResumesOrm.compensation) > 70000)
+            )
+            print(query.compile(compile_kwargs={"literal_binds": True}))
+            res = session.execute(query)
+            result = res.all()
+            print(result[0].avg_compensation)
+
+
+

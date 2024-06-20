@@ -55,5 +55,20 @@ class SyncCore:
             conn.execute(stmt)
             conn.commit()
 
+    @staticmethod
+    def insert_resumes():
+        with sync_engine.connect() as conn:
+            resumes = [
+                {"title": "Python Junior Developer", "compensation": 50000, "workload": Workload.fulltime,
+                 "worker_id": 1},
+                {"title": "Python Разработчик", "compensation": 150000, "workload": Workload.fulltime, "worker_id": 1},
+                {"title": "Python Data Engineer", "compensation": 250000, "workload": Workload.parttime,
+                 "worker_id": 2},
+                {"title": "Data Scientist", "compensation": 300000, "workload": Workload.fulltime, "worker_id": 2},
+            ]
+            stmt = insert(resumes_table).values(resumes)
+            conn.execute(stmt)
+            conn.commit()
+
 
 

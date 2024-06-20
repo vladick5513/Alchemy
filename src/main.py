@@ -14,4 +14,6 @@ SyncORM.insert_workers()
 
 SyncORM.select_workers()
 SyncORM.update_worker()
+SyncORM.insert_resumes()
+SyncORM.select_resumes_avg_compensation()
 
